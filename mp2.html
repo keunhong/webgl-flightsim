@@ -1,0 +1,84 @@
+<!doctype html>
+<html>
+<head>
+    <title>MP2 - Flight Simulator</title>
+    <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.6.4/jquery.min.js"></script>
+    <script type="text/javascript" src="js/webgl-utils.js"></script>
+    <script type="text/javascript" src="js/gl-matrix-min.js"></script>
+    <script type="text/javascript" src="js/mountain.js"></script>
+    <script type="text/javascript" src="js/mp2.js"></script>
+    <link type="text/css" rel="stylesheet" href="css/mp2.css" />
+    <script id="shader-fs" type="x-shader/x-fragment">
+        #ifdef GL_ES
+        precision highp float;
+        #endif
+
+        varying vec4 vColor;
+        varying vec3 vLightWeight;
+
+        void main(void) {
+            gl_FragColor = vec4(vec3(0.61, 0.52, 0.42) * vLightWeight, 1.0);
+        }
+    </script>
+    <script id="shader-vs" type="x-shader/x-vertex">	
+        attribute vec3 aVertexPosition;
+        attribute vec3 aVertexNormal;
+
+        uniform mat4 uPMatrix;
+        uniform mat3 uNMatrix;
+
+        uniform vec3 uAmbientColor;
+
+        uniform vec3 uLightingDirection;
+        uniform vec3 uDirectionalColor;
+
+        varying vec3 vLightWeight;
+
+        uniform vec3 uPosition;
+        uniform vec3 uForward;
+        uniform vec3 uUp;
+
+        void main(void) {
+			vec3 v = uForward;
+			vec3 u = uUp;
+			vec3 rprime = normalize(cross(v, u));
+			vec3 uprime = cross(rprime, v);
+			mat4 lookatTranslate = mat4(1.0);
+			lookatTranslate[3].xyz = -uPosition;
+			mat4 lookatRotate = mat4(rprime.x, uprime.x, -v.x, 0,
+									 rprime.y, uprime.y, -v.y, 0,
+									 rprime.z, uprime.z, -v.z, 0,
+									 0, 0, 0, 1);
+			mat4 lookatMatrix = lookatRotate * lookatTranslate;
+		
+			gl_Position = uPMatrix * lookatMatrix * vec4(aVertexPosition, 1.0);
+
+            float directionalLightWeight = max(dot(aVertexNormal, uLightingDirection), 0.0);
+            vLightWeight = uAmbientColor + uDirectionalColor * directionalLightWeight;
+        }
+    </script>
+</head>
+<body>
+<h1>MP2 Flight Simulator</h1>
+<h2>Terrain Generator Options</h2>
+Terrain size: <input type="text" id="terrain_size" value="12.0" /><br />
+# Noise Samples X: <input type="text" id="size_x" value="400" /> Y: <input type="text" id="size_y" value="400" /> (more polygons)<br />
+# Noise Data Points X: <input type="text" id="noise_size_x" value="100" /> Y: <input type="text" id="noise_size_y" value="100" /> (more points)<br />
+Max Mountain Height: <input type="text" id="max_height" value="1.5" /><br />
+<input type="button" id="start_sim" value="Start" />
+
+<h2>Graphics Options</h2>
+UFO Mode: <input type="checkbox" id="ufo_mode" />
+
+<div id="dbg"></div>
+<div class="info" id="velocity"><p>Velocity:</p> <span></span></div>
+<div class="info" id="forward"><p>Forward vector:</p> <span></span></div>
+<div class="info" id="up"><p>Up vector:</p> <span></span></div>
+<div class="info" id="position"><p>Position vector:</p> <span></span></div>
+<canvas id="mp2-canvas" width="900" height="600">
+</canvas>
+<h1>Keys</h1>
+<p>Movement: A: roll left, D: roll right, W: pitch down, D: pitch up</p>
+<p>Velocity: Use + and - to change velocity.</p>
+</body>
+</html>
